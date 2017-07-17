@@ -12,15 +12,13 @@
          syntaxCheck="true"
 >
     <testsuites>
-        <testsuite name="Unit">
-            <directory>tests/unit</directory>
+        <testsuite name="CSP Builder Test">
+            <directory>./tests</directory>
         </testsuite>
     </testsuites>
-    <testsuites>
-        <testsuite name="CSP Builder Test Suite">
-            <directory suffix="Test.php">./test</directory>
-        </testsuite>
-    </testsuites>
+    <logging>
+        <log type="coverage-clover" target="build/logs/clover.xml"/>
+    </logging>
     <filter>
         <whitelist processUncoveredFilesFromWhitelist="true">
             <directory suffix=".php">./src</directory>
