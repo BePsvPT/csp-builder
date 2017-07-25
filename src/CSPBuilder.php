@@ -1,19 +1,11 @@
 <?php
-declare(strict_types=1);
-namespace ParagonIE\CSPBuilder;
+
+namespace Bepsvpt\CSPBuilder;
 
 use \ParagonIE\ConstantTime\Base64;
-use \Psr\Http\Message\MessageInterface;
 
-/**
- * Class CSPBuilder
- * @package ParagonIE\CSPBuilder
- */
 class CSPBuilder
 {
-    const FORMAT_APACHE = 'apache';
-    const FORMAT_NGINX = 'nginx';
-
     /**
      * @var array
      */
@@ -37,7 +29,7 @@ class CSPBuilder
     /**
      * @var bool
      */
-    protected $supportOldBrowsers = true;
+    protected $httpsTransformOnHttpsConnections = true;
 
     /**
      * @var string[]
@@ -123,11 +115,6 @@ class CSPBuilder
             case 'child':
             case 'frame':
             case 'frame-src':
-                if ($this->supportOldBrowsers) {
-                    $this->policies['child-src']['allow'][] = $path;
-                    $this->policies['frame-src']['allow'][] = $path;
-                    return $this;
-                }
                 $directive = 'child-src';
                 break;
             case 'connect':
@@ -209,68 +196,7 @@ class CSPBuilder
         $this->needsCompile = true;
         return $this;
     }
-    
-    /**
-     * Disable old browser support (e.g. Safari)
-     * 
-     * @return CSPBuilder
-     */
-    public function disableOldBrowserSupport(): self
-    {
-        $this->needsCompile = $this->supportOldBrowsers !== false;
-        $this->supportOldBrowsers = false;
-        return $this;
-    }
-    
-    /**
-     * Enable old browser support (e.g. Safari)
-     * 
-     * This is enabled by default
-     * 
-     * @return CSPBuilder
-     */
-    public function enableOldBrowserSupport(): self
-    {
-        $this->needsCompile = $this->supportOldBrowsers !== true;
-        $this->supportOldBrowsers = true;
-        return $this;
-    }
 
-    /**
-     * Factory method - create a new CSPBuilder object from a JSON file
-     *
-     * @param string $filename
-     * @return CSPBuilder
-     * @throws \Exception
-     */
-    public static function fromFile(string $filename = ''): self
-    {
-        if (!\file_exists($filename)) {
-            throw new \Exception($filename.' does not exist');
-        }
-        return self::fromData(
-            \file_get_contents($filename)
-        );
-    }
-
-    /**
-     * Factory method - create a new CSPBuilder object from a JSON data
-     *
-     * @param string $data
-     * @return CSPBuilder
-     * @throws \Exception
-     */
-    public static function fromData($data = ''): self
-    {
-        $array = \json_decode($data, true);
-
-        if(!\is_array($array)) {
-            throw new \Exception('Is not array valid');
-        }
-
-        return new CSPBuilder($array);
-    }
-    
     /**
      * Get the formatted CSP header 
      * 
@@ -281,22 +207,22 @@ class CSPBuilder
         if ($this->needsCompile) {
             $this->compile();
         }
+
         return $this->compiled;
     }
     
     /**
      * Get an associative array of headers to return.
      * 
-     * @param bool $legacy
      * @return string[]
      */
-    public function getHeaderArray(bool $legacy = true): array
+    public function getHeaderArray(): array
     {
         if ($this->needsCompile) {
             $this->compile();
         }
         $return = [];
-        foreach ($this->getHeaderKeys($legacy) as $key) {
+        foreach ($this->getHeaderKeys() as $key) {
             $return[$key] = $this->compiled;
         }
         return $return;
@@ -347,24 +273,6 @@ class CSPBuilder
         }
         return $this;
     }
-    
-    /**
-     * PSR-7 header injection
-     * 
-     * @param \Psr\Http\Message\MessageInterface $message
-     * @param bool $legacy
-     * @return \Psr\Http\Message\MessageInterface
-     */
-    function injectCSPHeader(MessageInterface $message, bool $legacy = false): MessageInterface
-    {
-        if ($this->needsCompile) {
-            $this->compile();
-        }
-        foreach ($this->getHeaderKeys($legacy) as $key) {
-            $message = $message->withAddedHeader($key, $this->compiled);
-        }
-        return $message;
-    }
 
     /**
      * Add a new nonce to the existing CSP
@@ -388,73 +296,25 @@ class CSPBuilder
     }
 
     /**
-     * Save CSP to a snippet file
-     *
-     * @param string $outputFile Output file name
-     * @param string $format Which format are we saving in?
-     * @return bool
-     * @throws \Exception
-     */
-    public function saveSnippet(
-        string $outputFile,
-        string $format = self::FORMAT_NGINX
-    ): bool {
-        if ($this->needsCompile) {
-            $this->compile();
-        }
-        
-        // Are we doing a report-only header?
-        $which = $this->reportOnly 
-            ? 'Content-Security-Policy-Report-Only'
-            : 'Content-Security-Policy';
-        
-        switch ($format) {
-            case self::FORMAT_NGINX:
-                // In PHP < 7, implode() is faster than concatenation
-                $output = \implode('', [
-                    'add_header ',
-                    $which,
-                    ' "',
-                        \rtrim($this->compiled, ' '),
-                    '";',
-                    "\n"
-                ]);
-                break;
-            case self::FORMAT_APACHE:
-                $output = \implode('', [
-                    'Header add ',
-                    $which,
-                    ' "',
-                        \rtrim($this->compiled, ' '),
-                    '"',
-                    "\n"
-                ]);
-                break;
-            default:
-                throw new \Exception('Unknown format: '.$format);
-        }
-        return \file_put_contents($outputFile, $output) !== false;
-    }
-    
-    /**
      * Send the compiled CSP as a header()
-     * 
-     * @param boolean $legacy Send legacy headers?
      * 
      * @return boolean
      * @throws \Exception
      */
-    public function sendCSPHeader(bool $legacy = true): bool
+    public function sendCSPHeader(): bool
     {
         if (\headers_sent()) {
             throw new \Exception('Headers already sent!');
         }
+
         if ($this->needsCompile) {
             $this->compile();
         }
-        foreach ($this->getHeaderKeys($legacy) as $key) {
+
+        foreach ($this->getHeaderKeys() as $key) {
             \header($key.': '.$this->compiled);
         }
+
         return true;
     }
     
@@ -469,6 +329,7 @@ class CSPBuilder
     public function setDirective(string $key, $value = null): self
     {
         $this->policies[$key] = $value;
+
         return $this;
     }
     
@@ -504,17 +365,7 @@ class CSPBuilder
             foreach ($policies['allow'] as $url) {
                 $url = \filter_var($url, FILTER_SANITIZE_URL);
                 if ($url !== false) {
-                    if ($this->supportOldBrowsers) {
-                        if (\strpos($url, '://') === false) {
-                            if ($this->isHTTPSConnection() || !empty($this->policies['upgrade-insecure-requests'])) {
-                                // We only want HTTPS connections here.
-                                $ret .= 'https://'.$url.' ';
-                            } else {
-                                $ret .= 'https://'.$url.' http://'.$url.' ';
-                            }
-                        }
-                    }
-                    if ($this->isHTTPSConnection() || !empty($this->policies['upgrade-insecure-requests'])) {
+                    if (($this->isHTTPSConnection() && $this->httpsTransformOnHttpsConnections) || !empty($this->policies['upgrade-insecure-requests'])) {
                         $ret .= \str_replace('http://', 'https://', $url).' ';
                     } else {
                         $ret .= $url.' ';
@@ -568,28 +419,15 @@ class CSPBuilder
     /**
      * Get an array of header keys to return
      * 
-     * @param bool $legacy
      * @return array
      */
-    protected function getHeaderKeys(bool $legacy = true): array
+    protected function getHeaderKeys(): array
     {
-        // We always want this
-        $return = [
+        return [
             $this->reportOnly 
                 ? 'Content-Security-Policy-Report-Only'
                 : 'Content-Security-Policy'
         ];
-        
-        // If we're supporting legacy devices, include these too:
-        if ($legacy) {
-            $return []= $this->reportOnly 
-                ? 'X-Content-Security-Policy-Report-Only'
-                : 'X-Content-Security-Policy';
-            $return []= $this->reportOnly 
-                ? 'X-Webkit-CSP-Report-Only'
-                : 'X-Webkit-CSP';
-        }
-        return $return;
     }
     
     /**
@@ -599,9 +437,38 @@ class CSPBuilder
      */
     protected function isHTTPSConnection(): bool
     {
-        if (!empty($_SERVER['HTTPS'])) {
+        if (! empty($_SERVER['HTTPS'])) {
             return $_SERVER['HTTPS'] !== 'off';
         }
+
         return false;
+    }
+
+    /**
+     * Disable that HTTP sources get converted to HTTPS if the connection is such.
+     *
+     * @return CSPBuilder|$this|static
+     */
+    public function disableHttpsTransformOnHttpsConnections(): self
+    {
+        $this->needsCompile = $this->httpsTransformOnHttpsConnections !== false;
+        $this->httpsTransformOnHttpsConnections = false;
+
+        return $this;
+    }
+
+    /**
+     * Enable that HTTP sources get converted to HTTPS if the connection is such.
+     *
+     * This is enabled by default
+     *
+     * @return CSPBuilder|$this|static
+     */
+    public function enableHttpsTransformOnHttpsConnections(): self
+    {
+        $this->needsCompile = $this->httpsTransformOnHttpsConnections !== true;
+        $this->httpsTransformOnHttpsConnections = true;
+
+        return $this;
     }
 }
