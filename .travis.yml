@@ -24,4 +24,4 @@ after_script:
   - vendor/bin/test-reporter
 
 # Commands you want to run that will verify your build.
-script: vendor/bin/phpunit --stderr
+script: vendor/bin/phpunit
