@@ -103,7 +103,7 @@ class CSPBuilder
         }
         
         if (! empty($this->policies['report-uri'])) {
-            $compiled[] = sprintf('report-uri %s;', $this->policies['report-uri']);
+            $compiled[] = sprintf('report-uri %s; ', $this->policies['report-uri']);
         }
 
         if (! empty($this->policies['upgrade-insecure-requests'])) {
@@ -178,6 +178,7 @@ class CSPBuilder
         
         if (! empty($policies['nonces'])) {
             foreach ($policies['nonces'] as $nonce) {
+                // https://www.w3.org/TR/CSP/#grammardef-nonce-source
                 if (base64_encode(base64_decode($nonce, true)) !== $nonce) {
                     continue;
                 }
