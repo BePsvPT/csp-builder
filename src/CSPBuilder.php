@@ -7,32 +7,32 @@ class CSPBuilder
     /**
      * @var array
      */
-    private $policies = [];
+    protected $policies = [];
 
     /**
      * @var bool
      */
-    private $needsCompile = true;
+    protected $needsCompile = true;
 
     /**
      * @var string
      */
-    private $compiled = '';
+    protected $compiled = '';
 
     /**
      * @var bool
      */
-    private $reportOnly = false;
+    protected $reportOnly = false;
 
     /**
      * @var bool
      */
-    protected $httpsTransformOnHttpsConnections = true;
+    protected $httpTransformOnHttpsConnection = true;
 
     /**
      * @var string[]
      */
-    private static $directives = [
+    protected static $directives = [
         'base-uri',
         'default-src',
         'child-src',
@@ -82,7 +82,7 @@ class CSPBuilder
      * 
      * @return string
      */
-    public function compile(): string
+    protected function compile(): string
     {
         $ruleKeys = array_keys($this->policies);
 
@@ -116,7 +116,7 @@ class CSPBuilder
     }
 
     /**
-     * Compile a subgroup into a policy string
+     * Compile a subgroup into a policy string.
      * 
      * @param string $directive
      * @param mixed $policies
@@ -152,36 +152,37 @@ class CSPBuilder
                 $url = filter_var($url, FILTER_SANITIZE_URL);
 
                 if ($url !== false) {
-                    if (($this->isHTTPSConnection() && $this->httpsTransformOnHttpsConnections) || ! empty($this->policies['upgrade-insecure-requests'])) {
-                        $ret .= str_replace('http://', 'https://', $url).' ';
-                    } else {
-                        $ret .= $url.' ';
+                    if (($this->isHTTPSConnection() && $this->httpTransformOnHttpsConnection) || ! empty($this->policies['upgrade-insecure-requests'])) {
+                        $url = str_replace('http://', 'https://', $url);
                     }
+
+                    $ret .= $url.' ';
                 }
             }
         }
         
         if (! empty($policies['hashes'])) {
             foreach ($policies['hashes'] as $hash) {
-                foreach ($hash as $algo => $hashval) {
-                    $ret .= implode('', [
-                        "'",
-                        preg_replace('/[^A-Za-z0-9]/', '', $algo),
-                        '-',
-                        preg_replace('/[^A-Za-z0-9\+\/=]/', '', $hashval),
-                        "' "
-                    ]);
+                foreach ($hash as $algo => $value) {
+                    // https://www.w3.org/TR/CSP/#grammardef-hash-source
+                    if (! in_array($algo, ['sha256', 'sha384', 'sha512'])) {
+                        continue;
+                    } elseif (base64_encode(base64_decode($value, true)) !== $value) {
+                        continue;
+                    }
+
+                    $ret .= sprintf("'%s-%s' ", $algo, $value);
                 }
             }
         }
         
         if (! empty($policies['nonces'])) {
             foreach ($policies['nonces'] as $nonce) {
-                $ret .= implode('', [
-                    "'nonce-",
-                    preg_replace('/[^A-Za-z0-9\+\/=]/', '', $nonce),
-                    "' "
-                ]);
+                if (base64_encode(base64_decode($nonce, true)) !== $nonce) {
+                    continue;
+                }
+
+                $ret .= sprintf("'nonce-%s' ", $nonce);
             }
         }
         
@@ -225,11 +226,11 @@ class CSPBuilder
      *
      * @return CSPBuilder|$this|static
      */
-    public function disableHttpsTransformOnHttpsConnections(): self
+    public function disableHttpTransformOnHttpsConnection(): self
     {
-        $this->needsCompile = $this->httpsTransformOnHttpsConnections !== false;
+        $this->needsCompile = $this->httpTransformOnHttpsConnection !== false;
 
-        $this->httpsTransformOnHttpsConnections = false;
+        $this->httpTransformOnHttpsConnection = false;
 
         return $this;
     }
