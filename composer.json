@@ -17,8 +17,7 @@
     }
   ],
   "require": {
-    "php": "^7.0",
-    "paragonie/constant_time_encoding": "^2.0"
+    "php": "^7.0"
   },
   "require-dev": {
     "codeclimate/php-test-reporter": "^0.4",
