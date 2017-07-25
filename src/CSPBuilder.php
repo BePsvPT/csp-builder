@@ -46,7 +46,7 @@ class CSPBuilder
         'object-src',
         'plugin-types',
         'script-src',
-        'style-src'
+        'style-src',
     ];
 
     /**
@@ -76,10 +76,10 @@ class CSPBuilder
 
         return [$key => $this->compiled];
     }
-    
+
     /**
-     * Compile the current policies into a CSP header
-     * 
+     * Compile the current policies into a CSP header.
+     *
      * @return string
      */
     protected function compile(): string
@@ -91,8 +91,8 @@ class CSPBuilder
             : false;
 
         $compiled = [];
-        
-        foreach(self::$directives as $directive) {
+
+        foreach (self::$directives as $directive) {
             if (! in_array($directive, $ruleKeys)) {
                 continue;
             } elseif (empty($ruleKeys) && 'base-uri' === $directive) {
@@ -101,7 +101,7 @@ class CSPBuilder
 
             $compiled[] = $this->compileSubgroup($directive, $this->policies[$directive]);
         }
-        
+
         if (! empty($this->policies['report-uri'])) {
             $compiled[] = sprintf('report-uri %s; ', $this->policies['report-uri']);
         }
@@ -109,7 +109,7 @@ class CSPBuilder
         if (! empty($this->policies['upgrade-insecure-requests'])) {
             $compiled[] = 'upgrade-insecure-requests';
         }
-        
+
         $this->needsCompile = false;
 
         return $this->compiled = implode('', $compiled);
@@ -117,10 +117,10 @@ class CSPBuilder
 
     /**
      * Compile a subgroup into a policy string.
-     * 
+     *
      * @param string $directive
      * @param mixed $policies
-     * 
+     *
      * @return string
      */
     protected function compileSubgroup(string $directive, $policies = null): string
@@ -146,7 +146,7 @@ class CSPBuilder
         if (! empty($policies['self'])) {
             $ret .= "'self' ";
         }
-        
+
         if (! empty($policies['allow'])) {
             foreach ($policies['allow'] as $url) {
                 $url = filter_var($url, FILTER_SANITIZE_URL);
@@ -160,7 +160,7 @@ class CSPBuilder
                 }
             }
         }
-        
+
         if (! empty($policies['hashes'])) {
             foreach ($policies['hashes'] as $hash) {
                 foreach ($hash as $algo => $value) {
@@ -175,7 +175,7 @@ class CSPBuilder
                 }
             }
         }
-        
+
         if (! empty($policies['nonces'])) {
             foreach ($policies['nonces'] as $nonce) {
                 // https://www.w3.org/TR/CSP/#grammardef-nonce-source
@@ -186,13 +186,13 @@ class CSPBuilder
                 $ret .= sprintf("'nonce-%s' ", $nonce);
             }
         }
-        
+
         if (! empty($policies['types'])) {
             foreach ($policies['types'] as $type) {
                 $ret .= $type.' ';
             }
         }
-        
+
         if (! empty($policies['unsafe-inline'])) {
             $ret .= "'unsafe-inline' ";
         }
@@ -202,7 +202,7 @@ class CSPBuilder
         }
 
         if (! empty($policies['data'])) {
-            $ret .= "data: ";
+            $ret .= 'data: ';
         }
 
         return rtrim($ret, ' ').'; ';
