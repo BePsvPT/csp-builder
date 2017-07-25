@@ -3,7 +3,7 @@
 use Bepsvpt\CSPBuilder\CSPBuilder;
 use PHPUnit\Framework\TestCase;
 
-class BasicTest extends TestCase
+class CSPBuilderTest extends TestCase
 {
     public function test_csp()
     {
