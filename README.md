@@ -12,4 +12,4 @@ Integrate for [secure-headers](https://github.com/BePsvPT/secure-headers) packag
 
 ## Version
 
-1.0.0
+1.0.1
