@@ -44,7 +44,7 @@ class CSPBuilderTest extends TestCase
 
                 'nonces' => [
                     'Y3NwLWJ-1aWxkZXI=',
-                    'Y3NwLWJ1aWxkZXI='
+                    'Y3NwLWJ1aWxkZXI=',
                 ],
             ],
         ];
