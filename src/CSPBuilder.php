@@ -27,7 +27,7 @@ class CSPBuilder
     /**
      * @var bool
      */
-    protected $httpTransformOnHttpsConnection = true;
+    protected $httpsTransform = true;
 
     /**
      * @var string[]
@@ -152,7 +152,7 @@ class CSPBuilder
                 $url = filter_var($url, FILTER_SANITIZE_URL);
 
                 if ($url !== false) {
-                    if (($this->isHTTPSConnection() && $this->httpTransformOnHttpsConnection) || ! empty($this->policies['upgrade-insecure-requests'])) {
+                    if (($this->isHTTPSConnection() && $this->httpsTransform) || ! empty($this->policies['upgrade-insecure-requests'])) {
                         $url = str_replace('http://', 'https://', $url);
                     }
 
@@ -215,11 +215,9 @@ class CSPBuilder
      */
     protected function isHTTPSConnection(): bool
     {
-        if (! empty($_SERVER['HTTPS'])) {
-            return $_SERVER['HTTPS'] !== 'off';
-        }
+        $https = filter_input(INPUT_SERVER, 'HTTPS');
 
-        return false;
+        return ! empty($https) && 'off' !== strtolower($https);
     }
 
     /**
@@ -229,9 +227,9 @@ class CSPBuilder
      */
     public function disableHttpTransformOnHttpsConnection(): self
     {
-        $this->needsCompile = $this->httpTransformOnHttpsConnection !== false;
+        $this->needsCompile = $this->httpsTransform !== false;
 
-        $this->httpTransformOnHttpsConnection = false;
+        $this->httpsTransform = false;
 
         return $this;
     }
