@@ -42,9 +42,11 @@ class CSPBuilder
         'frame-ancestors',
         'frame-src',
         'img-src',
+        'manifest-src',
         'media-src',
         'object-src',
         'plugin-types',
+        'prefetch-src',
         'script-src',
         'style-src',
     ];

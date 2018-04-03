@@ -31,9 +31,11 @@
         "self": true,
         "data": true
     },
+    "manifest-src": [],
     "media-src": [],
     "object-src": [],
     "plugin-types": [],
+    "prefetch-src": [],
     "script-src": {
         "allow": [
             "https://ajax.googleapis.com",
